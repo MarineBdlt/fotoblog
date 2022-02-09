@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h2>Télécharger plusieurs photos</h2>
+    <form method="post" enctype="multipart/form-data">
+        {{ formset.managment_form }}
+        {% csrf_token %}
+        {% for form in formset %}
+            {{ form.as_p }}
+        {% endfor %}
+        <button type="submit" >Publier</button>
+    </form>
+{% endblock content %}
