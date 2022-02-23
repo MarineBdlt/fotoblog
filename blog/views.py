@@ -2,15 +2,24 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import redirect, render
 from django.shortcuts import get_object_or_404
 from django.forms import formset_factory
+from django.db.models import Q
 
 from . import forms, models
 
 
 @login_required
 def home(request):
-    photos = models.Photo.objects.all()
-    blogs = models.Blog.objects.all()
-    return render(request, "blog/home.html", context={"photos": photos, "blogs": blogs})
+    blogs = models.Blog.objects.filter(
+        Q(contributors__in=request.user.follows.all()) | Q(starred=True)
+    )
+    photos = models.Photo.objects.filter(
+        uploader__in=request.user.follows.all()
+    ).exclude(blog__in=blogs)
+    context = {
+        "blogs": blogs,
+        "photos": photos,
+    }
+    return render(request, "blog/home.html", context=context)
 
 
 @login_required
@@ -47,7 +56,7 @@ def create_multiple_photos(request):
 
 
 @login_required
-@permission_required("blog.create_blog", raise_exception=True)
+@permission_required("blog.add_blog", raise_exception=True)
 def blog_create(request):
     blog_form = forms.BlogForm()
     photo_form = forms.PhotoForm()
@@ -63,8 +72,11 @@ def blog_create(request):
             blog.author = request.user
             blog.photo = photo
             blog.save()
+            blog.contributors.add(
+                request.user, through_defaults={"contribution": "Auteur principal"}
+            )
             return redirect("home")
-        # handle the POST request here
+
     context = {
         "blog_form": blog_form,
         "photo_form": photo_form,
@@ -79,13 +91,13 @@ def view_blog(request, blog_id):
 
 
 @login_required
-@permission_required("blog.edit_blog", raise_exception=True)
-def edit_blog(request, blog_id):
+@permission_required("blog.change_blog", raise_exception=True)
+def change_blog(request, blog_id):
     blog = get_object_or_404(models.Blog, id=blog_id)
     edit_form = forms.BlogForm(instance=blog)
     delete_form = forms.DeleteBlogForm()
     if request.method == "POST":
-        if "edit_blog" in request.POST:
+        if "change_blog" in request.POST:
             edit_form = forms.BlogForm(request.POST, instance=blog)
             if edit_form.is_valid():
                 edit_form.save()
@@ -99,7 +111,7 @@ def edit_blog(request, blog_id):
         "edit_form": edit_form,
         "delete_form": delete_form,
     }
-    return render(request, "blog/edit_blog.html", context=context)
+    return render(request, "blog/change_blog.html", context=context)
 
 
 # blog/forms.py
@@ -118,4 +130,4 @@ def follow_users(request):
         if form.is_valid():
             form.save()
             return redirect("home")
-    return render(request, "blog/follow_users_form.html", context={"form": form})
+    return render(request, "blog/follow_users.html", context={"form": form})

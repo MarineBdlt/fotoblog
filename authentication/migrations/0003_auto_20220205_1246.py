@@ -15,8 +15,8 @@ def create_groups(apps, schema_migration):
 
     add_multiple_photos = Permission.objects.get(codename="create_multiple_photos")
 
-    create_blog = Permission.objects.get(codename="create_blog")
-    edit_blog = Permission.objects.get(codename="edit_blog")
+    add_blog = Permission.objects.get(codename="add_blog")
+    change_blog = Permission.objects.get(codename="change_blog")
 
     creator_permissions = [
         add_photo,
@@ -24,8 +24,8 @@ def create_groups(apps, schema_migration):
         delete_photo,
         view_photo,
         add_multiple_photos,
-        create_blog,
-        edit_blog,
+        add_blog,
+        change_blog,
     ]
 
     creators = Group(name="creators")
